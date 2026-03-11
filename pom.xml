@@ -6,12 +6,15 @@
 
     <groupId>dev.rsems</groupId>
     <artifactId>PhotoLabOutputSettingsReorderer</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>PhotoLabOutputSettingsReorderer</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.12.1</junit.version>
+        <app.name>PhotoLabOutputSettingsReorderer</app.name>
+        <!-- Stable UUID so MSI upgrades detect prior installs -->
+        <app.upgrade.uuid>6c3f4a2e-81b7-4d09-a5f3-2e9c0d7b1a43</app.upgrade.uuid>
     </properties>
 
     <dependencies>
@@ -24,11 +27,6 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>21.0.6</version>
-        </dependency>
-        <dependency>
-            <groupId>org.controlsfx</groupId>
-            <artifactId>controlsfx</artifactId>
-            <version>11.2.1</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -79,4 +77,75 @@
             </plugin>
         </plugins>
     </build>
+
+    <!--
+        Windows packaging profile.
+        Run on Windows with: mvn -Ppackage-windows javafx:jlink exec:exec
+        Prerequisites: JDK 21+, WiX Toolset (for MSI), NSIS (for EXE installer) on PATH.
+        Output: target/installer/PhotoLabOutputSettingsReorderer-<version>.exe and .msi
+    -->
+    <profiles>
+        <profile>
+            <id>package-windows</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <!-- Portable EXE installer (requires NSIS) -->
+                            <execution>
+                                <id>jpackage-exe</id>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>jpackage</executable>
+                                    <arguments>
+                                        <argument>--app-image</argument>
+                                        <argument>${project.build.directory}/app</argument>
+                                        <argument>--name</argument>
+                                        <argument>${app.name}</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>--type</argument>
+                                        <argument>exe</argument>
+                                        <argument>--dest</argument>
+                                        <argument>${project.build.directory}/installer</argument>
+                                        <argument>--win-dir-chooser</argument>
+                                        <argument>--win-menu</argument>
+                                        <argument>--win-shortcut</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!-- MSI installer (requires WiX Toolset) -->
+                            <execution>
+                                <id>jpackage-msi</id>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>jpackage</executable>
+                                    <arguments>
+                                        <argument>--app-image</argument>
+                                        <argument>${project.build.directory}/app</argument>
+                                        <argument>--name</argument>
+                                        <argument>${app.name}</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${project.version}</argument>
+                                        <argument>--type</argument>
+                                        <argument>msi</argument>
+                                        <argument>--dest</argument>
+                                        <argument>${project.build.directory}/installer</argument>
+                                        <argument>--win-dir-chooser</argument>
+                                        <argument>--win-menu</argument>
+                                        <argument>--win-shortcut</argument>
+                                        <argument>--win-upgrade-uuid</argument>
+                                        <argument>${app.upgrade.uuid}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

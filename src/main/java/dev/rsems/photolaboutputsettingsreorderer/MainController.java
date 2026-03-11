@@ -11,12 +11,17 @@ import javafx.stage.FileChooser;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class MainController {
 
     @FXML private Label fileLabel;
+    @FXML private Label statusLabel;
     @FXML private ListView<OutputSetting> listView;
     @FXML private Button moveUpButton;
     @FXML private Button moveDownButton;
@@ -29,6 +34,8 @@ public class MainController {
     private final ObservableList<OutputSetting> items = FXCollections.observableArrayList();
     private final BooleanProperty dirty = new SimpleBooleanProperty(false);
 
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
+
     @FXML
     public void initialize() {
         listView.setItems(items);
@@ -40,7 +47,6 @@ public class MainController {
 
         items.addListener((ListChangeListener<OutputSetting>) change -> {
             if (!change.next()) return;
-            // Only mark dirty for reorder/remove, not the initial addAll
             if (dirty.get() || change.wasRemoved() || change.wasAdded()) {
                 dirty.set(true);
             }
@@ -54,10 +60,64 @@ public class MainController {
 
     @FXML
     private void onOpen() {
+        // Try to find PhotoLab user configs automatically
+        List<Path> found = UserConfigService.findPhotoLabUserConfigs();
+
+        if (found.isEmpty()) {
+            openViaFileChooser();
+            return;
+        }
+
+        if (found.size() == 1) {
+            loadFile(found.getFirst());
+            return;
+        }
+
+        // Multiple installs found — let user pick, with an "Other…" option
+        Map<String, Path> displayMap = new LinkedHashMap<>();
+        for (Path p : found) {
+            // Build a readable label: show the two parent segments, e.g. "StrongName_xxx / 9.5.0.610"
+            Path parent = p.getParent();
+            Path grandParent = parent != null ? parent.getParent() : null;
+            String label = (grandParent != null ? grandParent.getFileName() + " / " : "")
+                    + (parent != null ? parent.getFileName() + " / " : "")
+                    + p.getFileName();
+            displayMap.put(label, p);
+        }
+
+        List<String> choices = List.copyOf(displayMap.keySet());
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(choices.getFirst(), choices);
+        dialog.setTitle("Open PhotoLab Config");
+        dialog.setHeaderText("Multiple PhotoLab installations found.\nSelect the user.config to open:");
+        dialog.setContentText("Installation:");
+
+        // Add an "Other…" button to fall back to file chooser
+        ButtonType otherButton = new ButtonType("Other…", ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().add(otherButton);
+
+        // Track whether "Other…" was clicked before the dialog closes
+        boolean[] wantsFileChooser = {false};
+        dialog.getDialogPane().lookupButton(otherButton)
+                .setOnMousePressed(e -> wantsFileChooser[0] = true);
+
+        Optional<String> result = dialog.showAndWait();
+        if (wantsFileChooser[0]) {
+            openViaFileChooser();
+        } else {
+            result.filter(displayMap::containsKey)
+                  .map(displayMap::get)
+                  .ifPresent(this::loadFile);
+        }
+    }
+
+    private void openViaFileChooser() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Open user.config");
         chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Config files", "user.config", "*.config"));
+                new FileChooser.ExtensionFilter("PhotoLab config (user.config)", "*"));
+        if (service.getConfigFile() != null) {
+            chooser.setInitialDirectory(service.getConfigFile().getParent().toFile());
+        }
         File file = chooser.showOpenDialog(listView.getScene().getWindow());
         if (file != null) {
             loadFile(file.toPath());
@@ -78,6 +138,7 @@ public class MainController {
             items.addAll(loaded);
             dirty.set(false);
             updateButtonStates(listView.getSelectionModel().getSelectedIndex());
+            setStatus("Loaded " + loaded.size() + " output settings.");
         } catch (Exception e) {
             showError("Failed to load file", e.getMessage());
         }
@@ -124,6 +185,8 @@ public class MainController {
         try {
             service.save(List.copyOf(items));
             dirty.set(false);
+            setStatus("Saved successfully at " + LocalTime.now().format(TIME_FMT)
+                    + "  (backup created)");
         } catch (Exception e) {
             showError("Failed to save", e.getMessage());
         }
@@ -135,46 +198,56 @@ public class MainController {
         confirm.setTitle("Revert Changes");
         confirm.setHeaderText("Discard all changes?");
         confirm.setContentText("All unsaved changes will be lost and the list will be reloaded from the file.");
-        confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> reload());
+        confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
+            reload();
+            setStatus("Reverted to saved file.");
+        });
     }
 
     @FXML
     private void onRestoreBackup() {
         if (service.getConfigFile() == null) return;
-        try {
-            List<Path> backups = service.listBackups();
-            if (backups.isEmpty()) {
-                new Alert(Alert.AlertType.INFORMATION, "No backups found.").showAndWait();
-                return;
-            }
-            ChoiceDialog<Path> dialog = new ChoiceDialog<>(backups.getFirst(), backups);
-            dialog.setTitle("Restore Backup");
-            dialog.setHeaderText("Select a backup to restore:");
-            dialog.setContentText("Backup:");
-            Optional<Path> choice = dialog.showAndWait();
-            choice.ifPresent(backup -> {
-                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                confirm.setTitle("Confirm Restore");
-                confirm.setHeaderText("Restore from " + backup.getFileName() + "?");
-                confirm.setContentText(
-                        "The current user.config will first be backed up, then overwritten with the selected backup.");
-                confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
-                    try {
-                        service.backup();
-                        service.restore(backup);
-                        reload();
-                    } catch (Exception e) {
-                        showError("Restore failed", e.getMessage());
-                    }
-                });
-            });
-        } catch (Exception e) {
-            showError("Failed to list backups", e.getMessage());
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Select Backup to Restore");
+        chooser.setInitialDirectory(service.getConfigFile().getParent().toFile());
+        // No extension filter — show all files; the directory naturally contains only user.config* files
+        File selected = chooser.showOpenDialog(listView.getScene().getWindow());
+        if (selected == null) return;
+
+        String name = selected.getName();
+        if (!name.startsWith("user.config")) {
+            Alert warn = new Alert(Alert.AlertType.WARNING);
+            warn.setTitle("Unexpected File");
+            warn.setHeaderText("\"" + name + "\" does not look like a user.config backup.");
+            warn.setContentText("Only files whose name starts with 'user.config' should be restored. Proceed anyway?");
+            warn.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+            if (warn.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
         }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm Restore");
+        confirm.setHeaderText("Restore from \"" + name + "\"?");
+        confirm.setContentText(
+                "The current user.config will first be backed up, then overwritten with the selected file.");
+        confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
+            try {
+                service.backup();
+                service.restore(selected.toPath());
+                reload();
+                setStatus("Restored from \"" + name + "\" at " + LocalTime.now().format(TIME_FMT) + ".");
+            } catch (Exception e) {
+                showError("Restore failed", e.getMessage());
+            }
+        });
     }
 
     private void markDirty() {
         dirty.set(true);
+    }
+
+    private void setStatus(String message) {
+        statusLabel.setText(message);
     }
 
     private void updateButtonStates(int selectedIndex) {

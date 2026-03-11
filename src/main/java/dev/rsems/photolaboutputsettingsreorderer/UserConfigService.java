@@ -16,6 +16,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class UserConfigService {
 
@@ -133,6 +135,42 @@ public class UserConfigService {
 
     public void restore(Path backup) throws Exception {
         Files.copy(backup, configFile, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Searches the platform-specific DxO installation directory for user.config files
+     * inside subdirectories matching {@code DxO.PhotoLab.exe_StrongName_*}.
+     * <p>
+     * Windows: {@code %LOCALAPPDATA%\DxO\DxO.PhotoLab.exe_StrongName_*\}<br>
+     * Linux (test): {@code ~/WindowsData/Fototechnik/DxO/DxO.PhotoLab.exe_StrongName_*\}
+     */
+    public static List<Path> findPhotoLabUserConfigs() {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        Path baseDir = os.contains("win")
+                ? Path.of(System.getenv().getOrDefault("LOCALAPPDATA",
+                          System.getProperty("user.home") + "\\AppData\\Local"), "DxO")
+                : Path.of(System.getProperty("user.home"), "WindowsData", "Fototechnik", "DxO");
+
+        if (!Files.isDirectory(baseDir)) return List.of();
+
+        try (Stream<Path> topLevel = Files.list(baseDir)) {
+            return topLevel
+                    .filter(p -> Files.isDirectory(p)
+                            && p.getFileName().toString().startsWith("DxO.PhotoLab.exe_StrongName_"))
+                    .flatMap(strongNameDir -> {
+                        try {
+                            return Files.walk(strongNameDir, 2)
+                                    .filter(p -> Files.isRegularFile(p)
+                                            && p.getFileName().toString().equals("user.config"));
+                        } catch (IOException e) {
+                            return Stream.empty();
+                        }
+                    })
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            return List.of();
+        }
     }
 
     private String serializeInner(Document doc) throws Exception {

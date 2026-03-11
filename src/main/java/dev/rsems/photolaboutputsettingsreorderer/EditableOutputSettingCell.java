@@ -2,6 +2,7 @@ package dev.rsems.photolaboutputsettingsreorderer;
 
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import javafx.scene.input.KeyCode;
 
 public class EditableOutputSettingCell extends ListCell<OutputSetting> {
@@ -48,8 +49,12 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
         }
     }
 
+    private static final int MAX_NAME_LENGTH = 50;
+
     private void createTextField() {
         textField = new TextField();
+        textField.setTextFormatter(new TextFormatter<>(change ->
+                change.getControlNewText().length() <= MAX_NAME_LENGTH ? change : null));
         textField.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) commitEdit(getItem());
             else if (event.getCode() == KeyCode.ESCAPE) cancelEdit();

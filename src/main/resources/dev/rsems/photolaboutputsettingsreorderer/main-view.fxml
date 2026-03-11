@@ -6,7 +6,7 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="dev.rsems.photolaboutputsettingsreorderer.MainController"
-            prefWidth="600" prefHeight="500">
+            prefWidth="620" prefHeight="520">
 
     <top>
         <ToolBar>
@@ -18,7 +18,7 @@
     <center>
         <HBox spacing="8">
             <BorderPane.margin>
-                <Insets top="8" right="8" bottom="8" left="8"/>
+                <Insets top="8" right="8" bottom="4" left="8"/>
             </BorderPane.margin>
             <ListView fx:id="listView" HBox.hgrow="ALWAYS"/>
             <VBox spacing="6" alignment="TOP_CENTER">
@@ -30,16 +30,20 @@
     </center>
 
     <bottom>
-        <HBox spacing="8" alignment="CENTER_LEFT">
-            <BorderPane.margin>
-                <Insets top="0" right="8" bottom="8" left="8"/>
-            </BorderPane.margin>
-            <Button fx:id="restoreButton" text="Restore Backup…" onAction="#onRestoreBackup"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="revertButton" text="Revert" onAction="#onRevert"/>
-            <Button fx:id="saveButton"   text="Save Changes"     onAction="#onSave"
-                    style="-fx-font-weight: bold;"/>
-        </HBox>
+        <VBox>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <VBox.margin>
+                    <Insets top="4" right="8" bottom="4" left="8"/>
+                </VBox.margin>
+                <Button fx:id="restoreButton" text="Restore Backup…" onAction="#onRestoreBackup"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="revertButton" text="Revert" onAction="#onRevert"/>
+                <Button fx:id="saveButton" text="Save Changes" onAction="#onSave"
+                        style="-fx-font-weight: bold;"/>
+            </HBox>
+            <Label fx:id="statusLabel" text=""
+                   style="-fx-padding: 2 8 4 8; -fx-text-fill: #555555; -fx-font-size: 11;"/>
+        </VBox>
     </bottom>
 
 </BorderPane>
