@@ -126,8 +126,10 @@
                                 <configuration>
                                     <executable>jpackage</executable>
                                     <arguments>
-                                        <argument>--app-image</argument>
+                                        <argument>--runtime-image</argument>
                                         <argument>${project.build.directory}/app</argument>
+                                        <argument>--module</argument>
+                                        <argument>dev.rsems.photolaboutputsettingsreorderer/dev.rsems.photolaboutputsettingsreorderer.Launcher</argument>
                                         <argument>--name</argument>
                                         <argument>${app.name}</argument>
                                         <argument>--app-version</argument>
@@ -150,8 +152,10 @@
                                 <configuration>
                                     <executable>jpackage</executable>
                                     <arguments>
-                                        <argument>--app-image</argument>
+                                        <argument>--runtime-image</argument>
                                         <argument>${project.build.directory}/app</argument>
+                                        <argument>--module</argument>
+                                        <argument>dev.rsems.photolaboutputsettingsreorderer/dev.rsems.photolaboutputsettingsreorderer.Launcher</argument>
                                         <argument>--name</argument>
                                         <argument>${app.name}</argument>
                                         <argument>--app-version</argument>
