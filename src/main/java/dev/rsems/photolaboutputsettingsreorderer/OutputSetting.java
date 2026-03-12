@@ -11,6 +11,7 @@ public class OutputSetting {
 
     private final Element element;
     private final StringProperty outputName = new SimpleStringProperty();
+    private String originalName;
 
     public OutputSetting(Element element) {
         this.element = element;
@@ -18,6 +19,7 @@ public class OutputSetting {
         if (nodes.getLength() > 0) {
             outputName.set(nodes.item(0).getTextContent());
         }
+        originalName = outputName.get();
         outputName.addListener((obs, oldVal, newVal) -> {
             NodeList nameNodes = element.getElementsByTagNameNS(A_NS, "OutputName");
             if (nameNodes.getLength() > 0) {
@@ -40,6 +42,15 @@ public class OutputSetting {
 
     public StringProperty outputNameProperty() {
         return outputName;
+    }
+
+    public boolean isModified() {
+        String current = outputName.get();
+        return current != null ? !current.equals(originalName) : originalName != null;
+    }
+
+    public void resetModified() {
+        originalName = outputName.get();
     }
 
     @Override

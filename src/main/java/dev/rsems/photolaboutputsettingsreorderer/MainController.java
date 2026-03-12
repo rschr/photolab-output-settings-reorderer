@@ -1,5 +1,6 @@
 package dev.rsems.photolaboutputsettingsreorderer;
 
+import javafx.beans.Observable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
@@ -8,18 +9,22 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
+import javafx.stage.WindowEvent;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
 
 public class MainController {
 
+    @FXML private ResourceBundle resources;
     @FXML private Label fileLabel;
     @FXML private Label statusLabel;
     @FXML private ListView<OutputSetting> listView;
@@ -31,7 +36,8 @@ public class MainController {
     @FXML private Button restoreButton;
 
     private final UserConfigService service = new UserConfigService();
-    private final ObservableList<OutputSetting> items = FXCollections.observableArrayList();
+    private final ObservableList<OutputSetting> items = FXCollections.observableArrayList(
+            setting -> new Observable[]{ setting.outputNameProperty() });
     private final BooleanProperty dirty = new SimpleBooleanProperty(false);
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -40,15 +46,18 @@ public class MainController {
     public void initialize() {
         listView.setItems(items);
         listView.setEditable(true);
-        listView.setCellFactory(lv -> new EditableOutputSettingCell(this::markDirty));
+        listView.setCellFactory(lv -> new EditableOutputSettingCell(
+                this::markDirty,
+                () -> setStatus(resources.getString("status.illegalChar"))));
 
         listView.getSelectionModel().selectedIndexProperty().addListener(
                 (obs, oldIdx, newIdx) -> updateButtonStates(newIdx.intValue()));
 
         items.addListener((ListChangeListener<OutputSetting>) change -> {
-            if (!change.next()) return;
-            if (dirty.get() || change.wasRemoved() || change.wasAdded()) {
-                dirty.set(true);
+            while (change.next()) {
+                if (change.wasRemoved() || change.wasAdded() || change.wasUpdated()) {
+                    dirty.set(true);
+                }
             }
         });
 
@@ -60,7 +69,6 @@ public class MainController {
 
     @FXML
     private void onOpen() {
-        // Try to find PhotoLab user configs automatically
         List<Path> found = UserConfigService.findPhotoLabUserConfigs();
 
         if (found.isEmpty()) {
@@ -69,14 +77,12 @@ public class MainController {
         }
 
         if (found.size() == 1) {
-            loadFile(found.getFirst());
+            loadFile(found.getFirst(), true);
             return;
         }
 
-        // Multiple installs found — let user pick, with an "Other…" option
         Map<String, Path> displayMap = new LinkedHashMap<>();
         for (Path p : found) {
-            // Build a readable label: show the two parent segments, e.g. "StrongName_xxx / 9.5.0.610"
             Path parent = p.getParent();
             Path grandParent = parent != null ? parent.getParent() : null;
             String label = (grandParent != null ? grandParent.getFileName() + " / " : "")
@@ -87,15 +93,13 @@ public class MainController {
 
         List<String> choices = List.copyOf(displayMap.keySet());
         ChoiceDialog<String> dialog = new ChoiceDialog<>(choices.getFirst(), choices);
-        dialog.setTitle("Open PhotoLab Config");
-        dialog.setHeaderText("Multiple PhotoLab installations found.\nSelect the user.config to open:");
-        dialog.setContentText("Installation:");
+        dialog.setTitle(resources.getString("dialog.open.title"));
+        dialog.setHeaderText(resources.getString("dialog.open.header"));
+        dialog.setContentText(resources.getString("dialog.open.content"));
 
-        // Add an "Other…" button to fall back to file chooser
-        ButtonType otherButton = new ButtonType("Other…", ButtonBar.ButtonData.LEFT);
+        ButtonType otherButton = new ButtonType(resources.getString("dialog.open.otherButton"), ButtonBar.ButtonData.LEFT);
         dialog.getDialogPane().getButtonTypes().add(otherButton);
 
-        // Track whether "Other…" was clicked before the dialog closes
         boolean[] wantsFileChooser = {false};
         dialog.getDialogPane().lookupButton(otherButton)
                 .setOnMousePressed(e -> wantsFileChooser[0] = true);
@@ -106,28 +110,47 @@ public class MainController {
         } else {
             result.filter(displayMap::containsKey)
                   .map(displayMap::get)
-                  .ifPresent(this::loadFile);
+                  .ifPresent(p -> loadFile(p, true));
         }
     }
 
     private void openViaFileChooser() {
         FileChooser chooser = new FileChooser();
-        chooser.setTitle("Open user.config");
+        chooser.setTitle(resources.getString("dialog.open.chooserTitle"));
         chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("PhotoLab config (user.config)", "*"));
+                new FileChooser.ExtensionFilter(resources.getString("dialog.open.filterDesc"), "*"));
         if (service.getConfigFile() != null) {
             chooser.setInitialDirectory(service.getConfigFile().getParent().toFile());
         }
         File file = chooser.showOpenDialog(listView.getScene().getWindow());
         if (file != null) {
-            loadFile(file.toPath());
+            loadFile(file.toPath(), false);
         }
     }
 
-    public void loadFile(Path path) {
+    public void loadFile(Path path, boolean canonical) {
         service.setConfigFile(path);
-        fileLabel.setText(path.toString());
+        if (canonical) {
+            Path parent = path.getParent();
+            String display = ".../" + (parent != null ? parent.getFileName() + "/" : "")
+                    + path.getFileName();
+            fileLabel.setText(display);
+        } else {
+            fileLabel.setText(path.toString());
+        }
         reload();
+    }
+
+    public void handleCloseRequest(WindowEvent event) {
+        if (!dirty.get()) return;
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.initOwner(listView.getScene().getWindow());
+        confirm.setTitle(resources.getString("dialog.exit.title"));
+        confirm.setHeaderText(resources.getString("dialog.exit.header"));
+        confirm.setContentText(resources.getString("dialog.exit.content"));
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+            event.consume();
+        }
     }
 
     private void reload() {
@@ -138,9 +161,9 @@ public class MainController {
             items.addAll(loaded);
             dirty.set(false);
             updateButtonStates(listView.getSelectionModel().getSelectedIndex());
-            setStatus("Loaded " + loaded.size() + " output settings.");
+            setStatus(MessageFormat.format(resources.getString("status.loaded"), loaded.size()));
         } catch (Exception e) {
-            showError("Failed to load file", e.getMessage());
+            showError(resources.getString("error.load.title"), e.getMessage());
         }
     }
 
@@ -169,9 +192,10 @@ public class MainController {
         int idx = listView.getSelectionModel().getSelectedIndex();
         if (idx < 0) return;
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Remove Option");
-        confirm.setHeaderText("Remove \"" + items.get(idx).getOutputName() + "\"?");
-        confirm.setContentText("This will remove the export option from the list.");
+        confirm.setTitle(resources.getString("dialog.remove.title"));
+        confirm.setHeaderText(MessageFormat.format(resources.getString("dialog.remove.header"),
+                items.get(idx).getOutputName()));
+        confirm.setContentText(resources.getString("dialog.remove.content"));
         confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
             items.remove(idx);
             int newSel = Math.min(idx, items.size() - 1);
@@ -185,22 +209,24 @@ public class MainController {
         try {
             service.save(List.copyOf(items));
             dirty.set(false);
-            setStatus("Saved successfully at " + LocalTime.now().format(TIME_FMT)
-                    + "  (backup created)");
+            items.forEach(OutputSetting::resetModified);
+            listView.refresh();
+            setStatus(MessageFormat.format(resources.getString("status.saved"),
+                    LocalTime.now().format(TIME_FMT)));
         } catch (Exception e) {
-            showError("Failed to save", e.getMessage());
+            showError(resources.getString("error.save.title"), e.getMessage());
         }
     }
 
     @FXML
     private void onRevert() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Revert Changes");
-        confirm.setHeaderText("Discard all changes?");
-        confirm.setContentText("All unsaved changes will be lost and the list will be reloaded from the file.");
+        confirm.setTitle(resources.getString("dialog.revert.title"));
+        confirm.setHeaderText(resources.getString("dialog.revert.header"));
+        confirm.setContentText(resources.getString("dialog.revert.content"));
         confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
             reload();
-            setStatus("Reverted to saved file.");
+            setStatus(resources.getString("status.reverted"));
         });
     }
 
@@ -209,35 +235,36 @@ public class MainController {
         if (service.getConfigFile() == null) return;
 
         FileChooser chooser = new FileChooser();
-        chooser.setTitle("Select Backup to Restore");
+        chooser.setTitle(resources.getString("dialog.restore.chooserTitle"));
         chooser.setInitialDirectory(service.getConfigFile().getParent().toFile());
-        // No extension filter — show all files; the directory naturally contains only user.config* files
         File selected = chooser.showOpenDialog(listView.getScene().getWindow());
         if (selected == null) return;
 
         String name = selected.getName();
         if (!name.startsWith("user.config")) {
             Alert warn = new Alert(Alert.AlertType.WARNING);
-            warn.setTitle("Unexpected File");
-            warn.setHeaderText("\"" + name + "\" does not look like a user.config backup.");
-            warn.setContentText("Only files whose name starts with 'user.config' should be restored. Proceed anyway?");
+            warn.setTitle(resources.getString("dialog.restore.unexpectedTitle"));
+            warn.setHeaderText(MessageFormat.format(
+                    resources.getString("dialog.restore.unexpectedHeader"), name));
+            warn.setContentText(resources.getString("dialog.restore.unexpectedContent"));
             warn.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
             if (warn.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirm Restore");
-        confirm.setHeaderText("Restore from \"" + name + "\"?");
-        confirm.setContentText(
-                "The current user.config will first be backed up, then overwritten with the selected file.");
+        confirm.setTitle(resources.getString("dialog.restore.confirmTitle"));
+        confirm.setHeaderText(MessageFormat.format(
+                resources.getString("dialog.restore.confirmHeader"), name));
+        confirm.setContentText(resources.getString("dialog.restore.confirmContent"));
         confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
             try {
                 service.backup();
                 service.restore(selected.toPath());
                 reload();
-                setStatus("Restored from \"" + name + "\" at " + LocalTime.now().format(TIME_FMT) + ".");
+                setStatus(MessageFormat.format(resources.getString("status.restored"),
+                        name, LocalTime.now().format(TIME_FMT)));
             } catch (Exception e) {
-                showError("Restore failed", e.getMessage());
+                showError(resources.getString("error.restore.title"), e.getMessage());
             }
         });
     }

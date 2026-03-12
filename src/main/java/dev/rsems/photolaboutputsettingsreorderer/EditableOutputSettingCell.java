@@ -7,11 +7,16 @@ import javafx.scene.input.KeyCode;
 
 public class EditableOutputSettingCell extends ListCell<OutputSetting> {
 
+    private static final int MAX_NAME_LENGTH = 50;
+    private static final String ILLEGAL_CHARS = "\\/:*?\"<>|";
+
     private final Runnable onDirty;
+    private final Runnable onIllegalChar;
     private TextField textField;
 
-    public EditableOutputSettingCell(Runnable onDirty) {
+    public EditableOutputSettingCell(Runnable onDirty, Runnable onIllegalChar) {
         this.onDirty = onDirty;
+        this.onIllegalChar = onIllegalChar;
     }
 
     @Override
@@ -31,6 +36,7 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
         super.cancelEdit();
         setText(getItem() == null ? "" : getItem().getOutputName());
         setGraphic(null);
+        applyStyle(getItem());
     }
 
     @Override
@@ -39,6 +45,7 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
         if (empty || item == null) {
             setText(null);
             setGraphic(null);
+            setStyle("");
         } else if (isEditing()) {
             if (textField != null) textField.setText(item.getOutputName());
             setText(null);
@@ -46,18 +53,38 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
         } else {
             setText(item.getOutputName());
             setGraphic(null);
+            applyStyle(item);
         }
     }
 
-    private static final int MAX_NAME_LENGTH = 50;
+    private void applyStyle(OutputSetting item) {
+        if (item != null && item.isModified()) {
+            setStyle("-fx-font-weight: bold;");
+        } else {
+            setStyle("");
+        }
+    }
 
     private void createTextField() {
         textField = new TextField();
-        textField.setTextFormatter(new TextFormatter<>(change ->
-                change.getControlNewText().length() <= MAX_NAME_LENGTH ? change : null));
+        textField.setTextFormatter(new TextFormatter<>(change -> {
+            for (char c : change.getText().toCharArray()) {
+                if (c < 32 || ILLEGAL_CHARS.indexOf(c) >= 0) {
+                    onIllegalChar.run();
+                    return null;
+                }
+            }
+            if (change.getControlNewText().length() > MAX_NAME_LENGTH) return null;
+            return change;
+        }));
         textField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) commitEdit(getItem());
-            else if (event.getCode() == KeyCode.ESCAPE) cancelEdit();
+            if (event.getCode() == KeyCode.ENTER) {
+                commitEdit(getItem());
+                event.consume();
+            } else if (event.getCode() == KeyCode.ESCAPE) {
+                cancelEdit();
+                event.consume();
+            }
         });
         textField.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (wasFocused && !isFocused && isEditing()) commitEdit(getItem());
@@ -76,5 +103,6 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
         super.commitEdit(item);
         setText(item == null ? "" : item.getOutputName());
         setGraphic(null);
+        applyStyle(item);
     }
 }
