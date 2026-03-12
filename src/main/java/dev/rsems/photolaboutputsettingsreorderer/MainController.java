@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +92,9 @@ public class MainController {
             displayMap.put(label, p);
         }
 
-        List<String> choices = List.copyOf(displayMap.keySet());
+        List<String> choices = displayMap.keySet().stream()
+                .sorted(Comparator.reverseOrder())
+                .toList();
         ChoiceDialog<String> dialog = new ChoiceDialog<>(choices.getFirst(), choices);
         dialog.setTitle(resources.getString("dialog.open.title"));
         dialog.setHeaderText(resources.getString("dialog.open.header"));
