@@ -138,6 +138,8 @@
                                         <argument>exe</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/installer</argument>
+                                        <argument>--icon</argument>
+                                        <argument>${project.basedir}/src/main/packaging/icon.ico</argument>
                                         <argument>--win-dir-chooser</argument>
                                         <argument>--win-menu</argument>
                                         <argument>--win-shortcut</argument>
@@ -167,6 +169,8 @@
                                         <argument>--win-dir-chooser</argument>
                                         <argument>--win-menu</argument>
                                         <argument>--win-shortcut</argument>
+                                        <argument>--icon</argument>
+                                        <argument>${project.basedir}/src/main/packaging/icon.ico</argument>
                                         <argument>--win-upgrade-uuid</argument>
                                         <argument>${app.upgrade.uuid}</argument>
                                     </arguments>
