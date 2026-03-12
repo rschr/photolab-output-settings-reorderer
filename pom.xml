@@ -80,8 +80,8 @@
 
     <!--
         Windows packaging profile.
-        Run on Windows with: mvn -Ppackage-windows javafx:jlink exec:exec
-        Prerequisites: JDK 21+, WiX Toolset (for MSI), NSIS (for EXE installer) on PATH.
+        In IntelliJ: activate the 'package-windows' profile in the Maven tool window, then run the 'package' lifecycle goal.
+        Prerequisites: JDK 21+, WiX Toolset v3 (for MSI), NSIS (for EXE installer) on PATH.
         Output: target/installer/PhotoLabOutputSettingsReorderer-<version>.exe and .msi
     -->
     <profiles>
@@ -89,14 +89,39 @@
             <id>package-windows</id>
             <build>
                 <plugins>
+                    <!-- Step 1: jlink creates the self-contained runtime image in target/app -->
+                    <plugin>
+                        <groupId>org.openjfx</groupId>
+                        <artifactId>javafx-maven-plugin</artifactId>
+                        <version>0.0.8</version>
+                        <executions>
+                            <execution>
+                                <id>jlink-for-package</id>
+                                <phase>prepare-package</phase>
+                                <goals><goal>jlink</goal></goals>
+                                <configuration>
+                                    <mainClass>
+                                        dev.rsems.photolaboutputsettingsreorderer/dev.rsems.photolaboutputsettingsreorderer.PhotoLabApp
+                                    </mainClass>
+                                    <launcher>app</launcher>
+                                    <jlinkImageName>app</jlinkImageName>
+                                    <noManPages>true</noManPages>
+                                    <stripDebug>true</stripDebug>
+                                    <noHeaderFiles>true</noHeaderFiles>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Step 2: jpackage wraps the app image into installers -->
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.5.0</version>
+                        <version>3.6.3</version>
                         <executions>
-                            <!-- Portable EXE installer (requires NSIS) -->
+                            <!-- EXE installer (requires NSIS) -->
                             <execution>
                                 <id>jpackage-exe</id>
+                                <phase>package</phase>
                                 <goals><goal>exec</goal></goals>
                                 <configuration>
                                     <executable>jpackage</executable>
@@ -117,9 +142,10 @@
                                     </arguments>
                                 </configuration>
                             </execution>
-                            <!-- MSI installer (requires WiX Toolset) -->
+                            <!-- MSI installer (requires WiX Toolset v3) -->
                             <execution>
                                 <id>jpackage-msi</id>
+                                <phase>package</phase>
                                 <goals><goal>exec</goal></goals>
                                 <configuration>
                                     <executable>jpackage</executable>
