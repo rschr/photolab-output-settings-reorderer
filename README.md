@@ -2,7 +2,14 @@
 
 This is a quick attempt at a graphical application to **reorder DxO PhotoLab's export settings list**.
 
-First beta release: https://github.com/rschr/photolab-output-settings-reorderer/releases/tag/0.3.0
+First beta release (Windows .msi): https://github.com/rschr/photolab-output-settings-reorderer/releases/tag/0.3.0
+
+<img src="https://github.com/user-attachments/assets/411c2c7f-2ce5-43b6-8999-b62bdeb8a3e5" alt="img1" width="400" />
+<img src="https://github.com/user-attachments/assets/ce1b0cfb-6cac-4846-aee4-392c6f93334e" alt="img1" width="400" />
+<img src="https://github.com/user-attachments/assets/3eb9eb05-039b-433d-88e2-00b7db74ecfa" alt="img1" width="400" />
+<img src="https://github.com/user-attachments/assets/7d5243ce-b565-404e-865a-97ce594b7de9" alt="img1" width="455" />
+<img src="https://github.com/user-attachments/assets/0d2cbce8-1a0c-41e5-8e84-764109eca3fd" alt="img1" width="455" />
+
 
 Opens a user config file from the list of available ones. You’ll then see the settings listed in their current order. You can reorder 
 any entry by clicking on it and using the up/down buttons. If you want, you can also edit the names of the individual settings. When 
