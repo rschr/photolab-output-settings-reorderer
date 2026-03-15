@@ -12,23 +12,27 @@
         <HBox alignment="CENTER_LEFT" spacing="8"
               style="-fx-padding: 4 8 4 8; -fx-background-color: -fx-background; -fx-border-color: transparent transparent derive(-fx-base,-15%) transparent; -fx-border-width: 1;">
             <Button text="%button.open" onAction="#onOpen"/>
+            <Button fx:id="importButton" text="%button.import" onAction="#onImport"/>
             <Label fx:id="fileLabel" text="" HBox.hgrow="ALWAYS" maxWidth="Infinity" minWidth="0"
                    textOverrun="LEADING_ELLIPSIS" style="-fx-padding: 0 0 0 4;"/>
         </HBox>
     </top>
 
     <center>
-        <HBox spacing="8">
+        <StackPane fx:id="centerStack">
             <BorderPane.margin>
                 <Insets top="8" right="8" bottom="4" left="8"/>
             </BorderPane.margin>
-            <ListView fx:id="listView" HBox.hgrow="ALWAYS"/>
-            <VBox spacing="6" alignment="TOP_CENTER">
-                <Button fx:id="moveUpButton"   text="%button.moveUp"   onAction="#onMoveUp"   maxWidth="Infinity"/>
-                <Button fx:id="moveDownButton" text="%button.moveDown" onAction="#onMoveDown" maxWidth="Infinity"/>
-                <Button fx:id="removeButton"   text="%button.remove"   onAction="#onRemove"   maxWidth="Infinity"/>
-            </VBox>
-        </HBox>
+            <HBox fx:id="normalView" spacing="8">
+                <ListView fx:id="listView" HBox.hgrow="ALWAYS"/>
+                <VBox spacing="6" alignment="TOP_CENTER">
+                    <Button fx:id="moveUpButton"   text="%button.moveUp"   onAction="#onMoveUp"   maxWidth="Infinity"/>
+                    <Button fx:id="moveDownButton" text="%button.moveDown" onAction="#onMoveDown" maxWidth="Infinity"/>
+                    <Button fx:id="removeButton"   text="%button.remove"   onAction="#onRemove"   maxWidth="Infinity"/>
+                </VBox>
+            </HBox>
+            <!-- importTable added programmatically in initialize() -->
+        </StackPane>
     </center>
 
     <bottom>
@@ -37,10 +41,11 @@
                 <VBox.margin>
                     <Insets top="4" right="8" bottom="4" left="8"/>
                 </VBox.margin>
-                <Button fx:id="restoreButton" text="%button.restoreBackup" onAction="#onRestoreBackup"/>
+                <Button fx:id="restoreButton"     text="%button.restoreBackup" onAction="#onRestoreBackup"/>
+                <Button fx:id="closeImportButton" text="%button.closeImport"   onAction="#onCloseImport"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Button fx:id="revertButton" text="%button.revert" onAction="#onRevert"/>
-                <Button fx:id="saveButton" text="%button.save" onAction="#onSave"
+                <Button fx:id="revertButton" text="%button.revert"   onAction="#onRevert"/>
+                <Button fx:id="saveButton"   text="%button.save"     onAction="#onSave"
                         style="-fx-font-weight: bold;"/>
             </HBox>
             <Label fx:id="statusLabel" text=""

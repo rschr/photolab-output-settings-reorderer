@@ -3,7 +3,11 @@ package dev.rsems.photolaboutputsettingsreorderer;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class OutputSetting {
 
@@ -51,6 +55,18 @@ public class OutputSetting {
 
     public void resetModified() {
         originalName = outputName.get();
+    }
+
+    public List<String[]> getAllProperties() {
+        List<String[]> props = new ArrayList<>();
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+                props.add(new String[]{child.getLocalName(), child.getTextContent().trim()});
+            }
+        }
+        return props;
     }
 
     @Override

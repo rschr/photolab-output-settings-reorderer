@@ -1,9 +1,12 @@
 package dev.rsems.photolaboutputsettingsreorderer;
 
+import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.input.KeyCode;
+
+import java.util.function.Consumer;
 
 public class EditableOutputSettingCell extends ListCell<OutputSetting> {
 
@@ -12,11 +15,18 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
 
     private final Runnable onDirty;
     private final Runnable onIllegalChar;
+    private final Button infoBtn;
     private TextField textField;
 
-    public EditableOutputSettingCell(Runnable onDirty, Runnable onIllegalChar) {
+    public EditableOutputSettingCell(Runnable onDirty, Runnable onIllegalChar,
+                                     Consumer<OutputSetting> onInfo) {
         this.onDirty = onDirty;
         this.onIllegalChar = onIllegalChar;
+        infoBtn = new Button("i");
+        infoBtn.setStyle("-fx-background-radius: 1em; -fx-font-style: italic; "
+                + "-fx-min-width: 22; -fx-min-height: 22; "
+                + "-fx-max-width: 22; -fx-max-height: 22;");
+        infoBtn.setOnAction(e -> { if (getItem() != null) onInfo.accept(getItem()); });
     }
 
     @Override
@@ -34,9 +44,10 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
     @Override
     public void cancelEdit() {
         super.cancelEdit();
-        setText(getItem() == null ? "" : getItem().getOutputName());
-        setGraphic(null);
-        applyStyle(getItem());
+        OutputSetting item = getItem();
+        setText(item == null ? "" : item.getOutputName());
+        setGraphic(item != null ? infoBtn : null);
+        applyStyle(item);
     }
 
     @Override
@@ -52,7 +63,7 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
             setGraphic(textField);
         } else {
             setText(item.getOutputName());
-            setGraphic(null);
+            setGraphic(infoBtn);
             applyStyle(item);
         }
     }
@@ -102,7 +113,7 @@ public class EditableOutputSettingCell extends ListCell<OutputSetting> {
         }
         super.commitEdit(item);
         setText(item == null ? "" : item.getOutputName());
-        setGraphic(null);
+        setGraphic(item != null ? infoBtn : null);
         applyStyle(item);
     }
 }

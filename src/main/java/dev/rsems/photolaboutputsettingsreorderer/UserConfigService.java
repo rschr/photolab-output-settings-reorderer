@@ -41,6 +41,7 @@ public class UserConfigService {
 
     private Path configFile;
     private Document outerDoc;
+    private Document innerDoc;
     private Element valueElement;
 
     public void setConfigFile(Path path) {
@@ -64,7 +65,6 @@ public class UserConfigService {
         }
 
         String embeddedXml = valueElement.getTextContent();
-        Document innerDoc;
         try (InputStream is = new ByteArrayInputStream(embeddedXml.getBytes(StandardCharsets.UTF_8))) {
             innerDoc = db.parse(is);
         }
@@ -171,6 +171,41 @@ public class UserConfigService {
         } catch (IOException e) {
             return List.of();
         }
+    }
+
+    /**
+     * Loads settings from an arbitrary path without changing this service's state.
+     */
+    public static List<OutputSetting> loadSettingsFrom(Path path) throws Exception {
+        UserConfigService tmp = new UserConfigService();
+        tmp.setConfigFile(path);
+        return tmp.load();
+    }
+
+    /**
+     * Replaces all child elements of {@code target}'s element with imported copies
+     * of {@code source}'s child elements, adopting them into the current inner document.
+     */
+    public void overwriteSetting(OutputSetting target, OutputSetting source) {
+        Element targetEl = target.getElement();
+        Element sourceEl = source.getElement();
+        while (targetEl.hasChildNodes()) {
+            targetEl.removeChild(targetEl.getFirstChild());
+        }
+        NodeList children = sourceEl.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            targetEl.appendChild(innerDoc.importNode(children.item(i), true));
+        }
+    }
+
+    /**
+     * Imports {@code source}'s element into the current inner document and wraps it
+     * in a new {@link OutputSetting}. The caller is responsible for adding it to the
+     * settings list; {@link #save} will append it to the DOM root automatically.
+     */
+    public OutputSetting adoptSetting(OutputSetting source) {
+        Element adopted = (Element) innerDoc.importNode(source.getElement(), true);
+        return new OutputSetting(adopted);
     }
 
     private String serializeInner(Document doc) throws Exception {

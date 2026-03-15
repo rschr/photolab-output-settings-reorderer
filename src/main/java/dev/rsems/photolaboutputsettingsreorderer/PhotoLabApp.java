@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
 
 public class PhotoLabApp extends Application {
 
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.3.0";
 
     @Override
     public void start(Stage stage) throws IOException {
