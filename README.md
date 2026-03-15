@@ -2,20 +2,19 @@
 
 This is a quick attempt at a graphical application to **reorder DxO PhotoLab's export settings list**.
 
-Open the user.config file from the folder containing the currently used version of PhotoLab—in this case, 9.5.0.610.
+First beta release: https://github.com/rschr/photolab-output-settings-reorderer/releases/tag/0.3.0
 
-You’ll then see the settings listed in their current order. You can reorder any entry by clicking on it and using the up/down buttons.
-If you want, you can also edit the names of the individual settings here. When you’re done, click Save, and the changes will be made in 
-PhotoLab. Just in case, the original config is saved with a timestamp and can be restored as needed, either using the application itself
-or manually.
+Opens a user config file from the list of available ones. You’ll then see the settings listed in their current order. You can reorder 
+any entry by clicking on it and using the up/down buttons. If you want, you can also edit the names of the individual settings. When 
+you’re done, click Save, and the changes will be saved in PhotoLab. Just in case, the original config is kept as a backup with a 
+timestamp and can be restored as needed, either using the application itself or manually.
 
 A view of every named setting's full parameters-and-values list as in DxO's config file can also be opened.
 
-The Settings Reorderer should work with virtually all PhotoLab versions starting with 3. (However, cross-version compatibility of the 
-user.config files it reads cannot be assumed; attempts to trick the application accordingly are therefore not recommended. On the other 
-hand — a restore is always possible.)
+The Settings Reorderer should work with virtually all PhotoLab versions starting with 3. (However, full cross-version compatibility 
+of the user.config files it reads cannot be assumed.)
 
-The Reorderer can also can **import export settings from other (like, earlier) versions**. PhotoLab keeps settings from earlier versions
+The Reorderer can also **import export settings from other (like, earlier) versions**. PhotoLab keeps settings from earlier versions
 on the system. This should come in handy when, like I've been experiencing it, a new PhotoLab Version does not import the last version's
 settings.
 
