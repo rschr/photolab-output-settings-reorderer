@@ -33,10 +33,11 @@ settings.
 UI languages implemented so far are English and German.
 
 The application is written – with massive help of Claude Code – in Java with JavaFx, packaging is implemented for Windows (.msi and .exe installers) 
-and Linux (.deb packaging), which is only for development purposes as PhotoLab unfortunately is not available for Linux, doesn't run on Wine, and 
-even a VM is only of use if it's got access to its own dedicated GPU. Apple macOS packaging is easy to add, but since I have no Apple myself I #
-didn't do that yet.
+and Linux (.deb packaging)[^1]. Apple macOS packaging is easy to add, but since I have no Apple myself I didn't do that yet.
 
 Disclaimer: this is beta software, no warranties that it doesn't break things.
 
 In first tests with PhotoLab 9.5 and user configs dating back to PhotoLab 3 though it did what it's supposed to do.
+
+[^1]: Only for development purposes as PhotoLab unfortunately is not available for Linux, doesn't run on Wine, and 
+even a VM is only of use if it's got access to its own dedicated GPU
