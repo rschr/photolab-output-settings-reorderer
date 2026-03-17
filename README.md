@@ -2,7 +2,7 @@
 
 This is a quick attempt at a graphical application to **reorder DxO PhotoLab's export settings list**.
 
-First beta release (Windows .msi): https://github.com/rschr/photolab-output-settings-reorderer/releases/tag/0.3.0  
+Latest beta release (Windows .msi): https://github.com/rschr/photolab-output-settings-reorderer/releases/tag/0.4.0  
 
 <img src="https://github.com/user-attachments/assets/411c2c7f-2ce5-43b6-8999-b62bdeb8a3e5" alt="img1" width="200" />
 
