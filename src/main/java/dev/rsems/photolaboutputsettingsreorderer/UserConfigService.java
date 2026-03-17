@@ -32,9 +32,12 @@ import java.util.stream.Stream;
 
 public class UserConfigService {
 
-    private static final String XPATH_VALUE =
-            "/configuration/userSettings/DxO.PhotoLab.Properties.Settings" +
-            "/setting[@name='OutputSettings']/value";
+    private static final String XPATH_SETTINGS_BASE =
+            "/configuration/userSettings/DxO.PhotoLab.Properties.Settings/setting[@name='%s']/value";
+    /** Setting name used in PhotoLab 9.6 and later. */
+    private static final String SETTING_NAME_96  = "FileExportSettings";
+    /** Setting name used in PhotoLab 9.5 and earlier. */
+    private static final String SETTING_NAME_95  = "OutputSettings";
 
     private static final DateTimeFormatter BACKUP_TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
@@ -59,9 +62,15 @@ public class UserConfigService {
         outerDoc = db.parse(configFile.toFile());
 
         XPath xp = XPathFactory.newInstance().newXPath();
-        valueElement = (Element) xp.evaluate(XPATH_VALUE, outerDoc, XPathConstants.NODE);
+        valueElement = (Element) xp.evaluate(
+                XPATH_SETTINGS_BASE.formatted(SETTING_NAME_96), outerDoc, XPathConstants.NODE);
         if (valueElement == null) {
-            throw new IllegalStateException("OutputSettings value element not found in " + configFile);
+            valueElement = (Element) xp.evaluate(
+                    XPATH_SETTINGS_BASE.formatted(SETTING_NAME_95), outerDoc, XPathConstants.NODE);
+        }
+        if (valueElement == null) {
+            throw new IllegalStateException(
+                    "Neither FileExportSettings nor OutputSettings found in " + configFile);
         }
 
         String embeddedXml = valueElement.getTextContent();
